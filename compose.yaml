@@ -1,0 +1,9 @@
+services:
+  server:
+    image: "grpc-backpr-srv:1"
+    ports:
+      - 8080:8080
+  client:
+    image: "grpc-backpr-clnt:1"
+    ports:
+      - 8081:8080

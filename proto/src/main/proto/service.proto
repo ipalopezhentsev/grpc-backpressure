@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "grpc.backpressure.proto";
+option java_outer_classname = "BackpressureTestProto";
+option objc_class_prefix = "HLW";
+
+package backpressure;
+
+service BackpressureTest {
+  rpc infiniteStream(Request) returns (stream Reply) {}
+}
+
+message Request {
+  string name = 1;
+}
+
+message Reply {
+  string message = 1;
+}
