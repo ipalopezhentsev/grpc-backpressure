@@ -1,9 +1,15 @@
 services:
   server:
     image: "grpc-backpr-srv:1"
+    networks:
+      - net
     ports:
-      - 8080:8080
+      - "50051"
+    mem_limit: 500m
   client:
     image: "grpc-backpr-clnt:1"
-    ports:
-      - 8081:8080
+    networks:
+      - net
+    mem_limit: 500m
+networks:
+  net:

@@ -16,7 +16,7 @@ public class Client {
 
     public static void main(String[] args) {
         log.info("Client");
-        String target = "localhost:50051";
+        String target = "server:50051";
         ManagedChannel channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create())
                 .build();
         var blockingStub = BackpressureTestGrpc.newBlockingStub(channel);
