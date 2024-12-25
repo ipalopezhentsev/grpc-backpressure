@@ -4,6 +4,7 @@
 package grpc.backpressure;
 
 import java.io.IOException;
+import java.util.concurrent.ForkJoinPool;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,12 @@ public class Server {
     private static final Logger log = LoggerFactory.getLogger(Server.class);
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        log.info("Server");
+        Runtime runtime = Runtime.getRuntime();
+        var maxMemory = runtime.maxMemory();
+        var cpus = runtime.availableProcessors();
+        var poolThrNum = ForkJoinPool.getCommonPoolParallelism();
+        log.info("Server; max mem available: {} MB; cpus: {}; pool thr: {}",
+                maxMemory / 1024 / 1024, cpus, poolThrNum);
         int port = 50051;
         var server = Grpc.newServerBuilderForPort(port, InsecureServerCredentials.create())
                 .addService(new BackpressureTestImpl())

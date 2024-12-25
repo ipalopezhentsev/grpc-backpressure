@@ -1,15 +1,24 @@
 services:
   server:
     image: "grpc-backpr-srv:1"
+    environment:
+      - JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=85"
     networks:
       - net
     ports:
       - "50051"
     mem_limit: 500m
+    cpus: 1.0
   client:
     image: "grpc-backpr-clnt:1"
+    environment:
+      - JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=85"
     networks:
       - net
     mem_limit: 500m
+    cpus: 1.0
+    depends_on:
+      server:
+        condition: service_started
 networks:
   net:
