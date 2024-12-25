@@ -11,4 +11,4 @@ plugins {
 }
 
 rootProject.name = "grpc-backpressure"
-include("server", "client", "proto", "list", "utilities")
+include("server", "client", "proto")

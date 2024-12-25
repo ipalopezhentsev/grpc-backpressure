@@ -7,7 +7,6 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":utilities"))
     implementation(project(":proto"))
 }
 
