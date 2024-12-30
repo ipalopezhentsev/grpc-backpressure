@@ -4,10 +4,12 @@
 package grpc.backpressure;
 
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import grpc.backpressure.proto.BackpressureTestGrpc;
+import grpc.backpressure.proto.BackpressureTestGrpc.BackpressureTestBlockingStub;
 import grpc.backpressure.proto.Request;
 import io.grpc.Grpc;
 import io.grpc.InsecureChannelCredentials;
@@ -15,6 +17,33 @@ import io.grpc.ManagedChannel;
 
 public class Client {
     private static final Logger log = LoggerFactory.getLogger(Client.class);
+    private final String target = "server:50051";
+    private ManagedChannel channel;
+    private BackpressureTestBlockingStub blockingStub;
+
+    public Client() {
+        channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
+        blockingStub = BackpressureTestGrpc.newBlockingStub(channel);
+    }
+
+    public void testViaBlockingStub() {
+        var cnt = new AtomicInteger();
+        try {
+            blockingStub.infiniteStream(Request.getDefaultInstance()).forEachRemaining(resp -> {
+                var i = cnt.incrementAndGet();
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (i % 10_000 == 0) {
+                    log.info("i={}, resp={}", i, resp);
+                }
+            });
+        } catch (Exception ex) {
+            log.error("Server stopped replying, last count={}", cnt.get(), ex);
+        }
+    }
 
     public static void main(String[] args) {
         Runtime runtime = Runtime.getRuntime();
@@ -23,12 +52,7 @@ public class Client {
         var poolThrNum = ForkJoinPool.getCommonPoolParallelism();
         log.info("Client; max mem available: {} MB; cpus: {}; pool thr: {}",
                 maxMemory / 1024 / 1024, cpus, poolThrNum);
-        String target = "server:50051";
-        ManagedChannel channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create())
-                .build();
-        var blockingStub = BackpressureTestGrpc.newBlockingStub(channel);
-        blockingStub.infiniteStream(Request.getDefaultInstance()).forEachRemaining(resp -> {
-            log.info(resp.toString());
-        });
+        var clnt = new Client();
+        clnt.testViaBlockingStub();
     }
 }
