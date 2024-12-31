@@ -3,6 +3,7 @@
  */
 package grpc.backpressure;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,20 +11,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import grpc.backpressure.proto.BackpressureTestGrpc;
 import grpc.backpressure.proto.BackpressureTestGrpc.BackpressureTestBlockingStub;
+import grpc.backpressure.proto.BackpressureTestGrpc.BackpressureTestStub;
+import grpc.backpressure.proto.Reply;
 import grpc.backpressure.proto.Request;
 import io.grpc.Grpc;
 import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
+import io.grpc.stub.ClientCallStreamObserver;
+import io.grpc.stub.ClientResponseObserver;
 
 public class Client {
     private static final Logger log = LoggerFactory.getLogger(Client.class);
     private final String target = "server:50051";
-    private ManagedChannel channel;
-    private BackpressureTestBlockingStub blockingStub;
+    private final ManagedChannel channel;
+    private final BackpressureTestBlockingStub blockingStub;
+    private final BackpressureTestStub asyncStub;
 
     public Client() {
         channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
         blockingStub = BackpressureTestGrpc.newBlockingStub(channel);
+        asyncStub = BackpressureTestGrpc.newStub(channel);
     }
 
     public void testViaBlockingStub() {
@@ -45,7 +52,47 @@ public class Client {
         }
     }
 
-    public static void main(String[] args) {
+    public void testViaAsyncStub() throws InterruptedException {
+        var cnt = new AtomicInteger();
+        var latch = new CountDownLatch(1);
+        final var observer = new ClientResponseObserver<Request, Reply>() {
+            private ClientCallStreamObserver<Request> requestStream = null;
+            @Override
+            public void beforeStart(ClientCallStreamObserver<Request> requestStream) {
+                this.requestStream = requestStream;
+                this.requestStream.disableAutoRequestWithInitial(1);
+            }
+
+            @Override
+            public void onNext(Reply value) {
+                var i = cnt.incrementAndGet();
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (i % 10_000 == 0) {
+                    log.info("i={}, resp={}", i, value);
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                log.error("Server stopped replying, last count={}", cnt.get(), t);
+                latch.countDown();
+            }
+
+            @Override
+            public void onCompleted() {
+                log.info("Done");
+                latch.countDown();
+            }
+        };
+        asyncStub.infiniteStream(Request.getDefaultInstance(), observer);
+        latch.await();
+    }
+
+    public static void main(String[] args) throws InterruptedException {
         Runtime runtime = Runtime.getRuntime();
         var maxMemory = runtime.maxMemory();
         var cpus = runtime.availableProcessors();
@@ -53,6 +100,7 @@ public class Client {
         log.info("Client; max mem available: {} MB; cpus: {}; pool thr: {}",
                 maxMemory / 1024 / 1024, cpus, poolThrNum);
         var clnt = new Client();
-        clnt.testViaBlockingStub();
+        // clnt.testViaBlockingStub();
+        clnt.testViaAsyncStub();
     }
 }

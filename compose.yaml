@@ -15,7 +15,7 @@ services:
       - JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=85"
     networks:
       - net
-    mem_limit: 50m
+    mem_limit: 150m
     cpus: 1.0
     depends_on:
       server:
