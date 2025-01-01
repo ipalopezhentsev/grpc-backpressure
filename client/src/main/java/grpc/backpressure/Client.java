@@ -29,6 +29,8 @@ public class Client {
 
     public Client() {
         channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
+        var svcDescr = BackpressureTestGrpc.getServiceDescriptor();
+        log.info(svcDescr.toString());
         blockingStub = BackpressureTestGrpc.newBlockingStub(channel);
         asyncStub = BackpressureTestGrpc.newStub(channel);
     }
@@ -43,9 +45,9 @@ public class Client {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (i % 10_000 == 0) {
+                // if (i % 10_000 == 0) {
                     log.info("i={}, resp={}", i, resp);
-                }
+                // }
             });
         } catch (Exception ex) {
             log.error("Server stopped replying, last count={}", cnt.get(), ex);
@@ -60,7 +62,7 @@ public class Client {
             @Override
             public void beforeStart(ClientCallStreamObserver<Request> requestStream) {
                 this.requestStream = requestStream;
-                this.requestStream.disableAutoRequestWithInitial(1);
+                //this.requestStream.disableAutoRequestWithInitial(1);
             }
 
             @Override
@@ -71,9 +73,10 @@ public class Client {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (i % 10_000 == 0) {
+                // if (i % 10_000 == 0) {
                     log.info("i={}, resp={}", i, value);
-                }
+                // }
+                //this.requestStream.request(1);
             }
 
             @Override
@@ -100,7 +103,7 @@ public class Client {
         log.info("Client; max mem available: {} MB; cpus: {}; pool thr: {}",
                 maxMemory / 1024 / 1024, cpus, poolThrNum);
         var clnt = new Client();
-        // clnt.testViaBlockingStub();
+        //clnt.testViaBlockingStub();
         clnt.testViaAsyncStub();
     }
 }
