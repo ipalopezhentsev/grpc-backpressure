@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import grpc.backpressure.proto.BackpressureTestGrpc;
 import grpc.backpressure.proto.Reply;
 import grpc.backpressure.proto.Request;
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
 public class BackpressureTestImpl extends BackpressureTestGrpc.BackpressureTestImplBase {
@@ -13,22 +14,28 @@ public class BackpressureTestImpl extends BackpressureTestGrpc.BackpressureTestI
 
     @Override
     public void infiniteStream(Request request, StreamObserver<Reply> responseObserver) {
+        var srvResponseObserver = (ServerCallStreamObserver<Reply>) responseObserver;
+        //srvResponseObserver.disableAutoRequest();
         int i = 1;
         // try {
-            while (true) {
+        while (!srvResponseObserver.isCancelled()) {
+            if (srvResponseObserver.isReady()) {
                 var repl = Reply.newBuilder().setMessage(Integer.toString(i)).build();
-                //slow client without backpressure will cause this server to go out of memory soon.
+                // slow client without backpressure will cause this server to go out of memory soon.
                 responseObserver.onNext(repl);
-                if (i % 50_000 == 0) {
-                    log.info("i={}", i);
-                }
+                // if (i % 50_000 == 0) {
+                log.info("i={}", i);
+                // }
                 i++;
+            } else {
+                log.info("Client not ready");
             }
-            // responseObserver.onCompleted();
+        }
+        // responseObserver.onCompleted();
         // } catch (Throwable ex) {
-        //     System.err.println("Exiting due to resources, reached count=" + i);
-        //     ex.printStackTrace();
-        //     throw ex;
+        // System.err.println("Exiting due to resources, reached count=" + i);
+        // ex.printStackTrace();
+        // throw ex;
         // }
     }
 }

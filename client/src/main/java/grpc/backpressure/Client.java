@@ -28,6 +28,8 @@ public class Client {
 
     public Client(String server) {
         channel = Grpc.newChannelBuilder(server + ":50051", InsecureChannelCredentials.create()).build();
+        var svcDescr = BackpressureTestGrpc.getServiceDescriptor();
+        log.info(svcDescr.toString());
         blockingStub = BackpressureTestGrpc.newBlockingStub(channel);
         asyncStub = BackpressureTestGrpc.newStub(channel);
     }
@@ -42,9 +44,9 @@ public class Client {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (i % 10_000 == 0) {
+                // if (i % 10_000 == 0) {
                     log.info("i={}, resp={}", i, resp);
-                }
+                // }
             });
         } catch (Exception ex) {
             log.error("Server stopped replying, last count={}", cnt.get(), ex);
@@ -59,7 +61,7 @@ public class Client {
             @Override
             public void beforeStart(ClientCallStreamObserver<Request> requestStream) {
                 this.requestStream = requestStream;
-                this.requestStream.disableAutoRequestWithInitial(1);
+                //this.requestStream.disableAutoRequestWithInitial(1);
             }
 
             @Override
@@ -73,7 +75,7 @@ public class Client {
                 // if (i % 10_000 == 0) {
                     log.info("i={}, resp={}", i, value);
                 // }
-                requestStream.request(1);
+                //this.requestStream.request(1);
             }
 
             @Override
