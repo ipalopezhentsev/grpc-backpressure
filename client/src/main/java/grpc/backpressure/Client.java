@@ -22,13 +22,12 @@ import io.grpc.stub.ClientResponseObserver;
 
 public class Client {
     private static final Logger log = LoggerFactory.getLogger(Client.class);
-    private final String target = "server:50051";
     private final ManagedChannel channel;
     private final BackpressureTestBlockingStub blockingStub;
     private final BackpressureTestStub asyncStub;
 
-    public Client() {
-        channel = Grpc.newChannelBuilder(target, InsecureChannelCredentials.create()).build();
+    public Client(String server) {
+        channel = Grpc.newChannelBuilder(server + ":50051", InsecureChannelCredentials.create()).build();
         blockingStub = BackpressureTestGrpc.newBlockingStub(channel);
         asyncStub = BackpressureTestGrpc.newStub(channel);
     }
@@ -71,9 +70,10 @@ public class Client {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (i % 10_000 == 0) {
+                // if (i % 10_000 == 0) {
                     log.info("i={}, resp={}", i, value);
-                }
+                // }
+                requestStream.request(1);
             }
 
             @Override
@@ -99,7 +99,12 @@ public class Client {
         var poolThrNum = ForkJoinPool.getCommonPoolParallelism();
         log.info("Client; max mem available: {} MB; cpus: {}; pool thr: {}",
                 maxMemory / 1024 / 1024, cpus, poolThrNum);
-        var clnt = new Client();
+        var server = "localhost";
+        var envServer = System.getenv("SERVER_NAME");
+        if (envServer != null) {
+            server = envServer;
+        }
+        var clnt = new Client(server);
         // clnt.testViaBlockingStub();
         clnt.testViaAsyncStub();
     }

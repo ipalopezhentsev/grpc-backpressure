@@ -13,6 +13,7 @@ services:
     image: "grpc-backpr-clnt:1"
     environment:
       - JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=85"
+      - SERVER_NAME=server
     networks:
       - net
     mem_limit: 150m
