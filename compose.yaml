@@ -7,7 +7,7 @@ services:
       - net
     ports:
       - "50051"
-    mem_limit: 500m
+    mem_limit: 50m
     cpus: 1.0
   client:
     image: "grpc-backpr-clnt:1"
@@ -16,7 +16,7 @@ services:
       - SERVER_NAME=server
     networks:
       - net
-    mem_limit: 150m
+    mem_limit: 50m
     cpus: 1.0
     depends_on:
       server:

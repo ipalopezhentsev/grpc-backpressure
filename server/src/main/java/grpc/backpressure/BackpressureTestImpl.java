@@ -15,27 +15,31 @@ public class BackpressureTestImpl extends BackpressureTestGrpc.BackpressureTestI
     @Override
     public void infiniteStream(Request request, StreamObserver<Reply> responseObserver) {
         var srvResponseObserver = (ServerCallStreamObserver<Reply>) responseObserver;
-        //srvResponseObserver.disableAutoRequest();
+        // this is needed only for flow control of client streams:
+        // srvResponseObserver.disableAutoRequest();
         int i = 1;
-        // try {
-        while (!srvResponseObserver.isCancelled()) {
-            if (srvResponseObserver.isReady()) {
-                var repl = Reply.newBuilder().setMessage(Integer.toString(i)).build();
-                // slow client without backpressure will cause this server to go out of memory soon.
-                responseObserver.onNext(repl);
-                // if (i % 50_000 == 0) {
-                log.info("i={}", i);
-                // }
-                i++;
-            } else {
-                log.info("Client not ready");
+        try {
+            while (!srvResponseObserver.isCancelled()) {
+                if (srvResponseObserver.isReady()) {
+                    var repl = Reply.newBuilder().setMessage(Integer.toString(i)).build();
+                    // if we don't check for .isReady() and have a slow client, it will cause this
+                    // server to go out of memory soon.
+                    responseObserver.onNext(repl);
+                    log.info("i={}", i);
+                    i++;
+                } else {
+                    log.info("Client not ready");
+                    try {
+                        Thread.sleep(1_000);
+                    } catch (InterruptedException e) {
+                        log.error("", e);
+                        Thread.currentThread().interrupt();
+                    }
+                }
             }
+            responseObserver.onCompleted();
+        } catch (Throwable ex) {
+            responseObserver.onError(ex);
         }
-        // responseObserver.onCompleted();
-        // } catch (Throwable ex) {
-        // System.err.println("Exiting due to resources, reached count=" + i);
-        // ex.printStackTrace();
-        // throw ex;
-        // }
     }
 }
